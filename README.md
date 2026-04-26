@@ -1,6 +1,6 @@
 # 🌾 Agriculture Management System
 
-A premium, full-stack web application designed to help agronomists and farmers manage fields, monitor soil health, track fertilizer usage, and automate disease alerts. Built with a modern React frontend and a powerful Node.js/MySQL backend featuring advanced PL/SQL-style database automation.
+A premium, full-stack web application designed to help agronomists and farmers manage fields, monitor soil health, track fertilizer usage, and automate disease alerts. Built with a modern React frontend and a powerful Node.js/MySQL backend featuring advanced, production-ready PL/SQL database automation.
 
 ## ✨ Key Features
 
@@ -10,12 +10,17 @@ A premium, full-stack web application designed to help agronomists and farmers m
 * **Live System Alerts Panel:** Real-time notifications for critical crop diseases fetched directly from database triggers.
 * **Activity Logs Viewer:** A dedicated UI to monitor automated background database events and user inputs.
 
-### ⚙️ Advanced Backend & Database Automation (Node.js + MySQL)
-* **Data Validation Triggers:** The database strictly prevents invalid data (e.g., Soil pH must be between 0-14, fertilizer caps at 100 units).
-* **Automated Alerting (`HighSeverityDiseaseAlert`):** Whenever a high/critical crop disease is logged, the database automatically generates an alert message using a Trigger.
-* **Audit Logging (`LogFertilizerUsage`):** A database trigger silently logs every fertilizer application to an immutable `AuditLog` table.
-* **Stored Procedures:** Heavy calculations (like aggregating field summaries) are offloaded to compiled MySQL stored procedures for lightning-fast API responses.
-* **Automated Event Scheduler:** A background MySQL cron job automatically recalculates and caches total fertilizer usage globally every 24 hours.
+### ⚙️ Advanced Database Architecture & Automation (MySQL 8.0+)
+This project showcases deep database engineering, pushing business logic directly into the data layer:
+* **3NF Normalization:** Fully normalized relational structure separating `Farmers`, `Crops`, `Fields`, `SoilHealth`, and `CropDiseases` to prevent data anomalies.
+* **User-Defined Functions (UDF):** Features a custom `CheckSoilHealthStatus()` deterministic function to instantly classify N-P-K nutrient levels as 'Healthy', 'Deficient', or 'Toxic'.
+* **Dynamic Views:** Utilizes a `FieldHealthSummary` VIEW to instantly join 5 tables and aggregate complex health statuses without writing massive queries in the backend.
+* **Data Validation Triggers:** The database strictly prevents invalid data via triggers (e.g., aborting queries if Soil pH isn't between 0-14).
+* **Automated Audit Logging:** Un-bypassable triggers automatically log high-severity diseases to an `Alerts` table and track every fertilizer application in an immutable `AuditLog` table.
+* **Transactions & Rollbacks:** The `ApplyFertilizerSafe` stored procedure uses `START TRANSACTION`, row-level locking (`FOR UPDATE`), and strict business rules. If an application exceeds the field limit, it triggers an instant `ROLLBACK`.
+* **Cursors:** Features an advanced looping mechanism via Cursors inside a stored procedure to iterate over critical fields and generate daily summary alerts row-by-row.
+* **Automated Event Scheduler:** A background MySQL cron job (`daily_field_check`) automatically self-heals cached fertilizer totals and runs the Cursor procedure every 24 hours.
+* **Performance Indexing:** Strategic composite and foreign-key indexes added to optimize `JOIN` and `WHERE` clauses on massive datasets.
 
 ---
 
@@ -45,16 +50,17 @@ PORT=5001
 ```
 
 ### 3. Initialize the Database
-We have provided a migration script that builds the tables, triggers, procedures, and events automatically.
+We have provided a comprehensive schema file that builds the 3NF tables, UDFs, Views, Triggers, Procedures, and Events.
+You can import the database by running the `schema.sql` file in your MySQL environment:
 ```bash
-cd backend
-npm install
-node migrate.js
+mysql -u root -p < db/schema.sql
 ```
+*(Alternatively, you can copy the contents of `db/schema.sql` and run it directly in phpMyAdmin or MySQL Workbench).*
 
 ### 4. Run the Backend Server
 ```bash
 cd backend
+npm install
 npm run dev
 ```
 *The server will start on `http://localhost:5001`.*
@@ -76,7 +82,6 @@ npm run dev
 agriculture-management-system/
 ├── backend/
 │   ├── server.js         # Express API routes
-│   ├── migrate.js        # DB migration & PL/SQL generation script
 │   └── .env              # Environment variables
 ├── frontend/
 │   ├── src/
@@ -85,7 +90,7 @@ agriculture-management-system/
 │   │   └── index.css     # Global Tailwind configurations
 │   └── vite.config.js    # Vite configuration
 └── db/
-    └── schema.sql        # Initial basic schema definitions
+    └── schema.sql        # Advanced 3NF schema with PL/SQL logic
 ```
 
 ## 🤝 Contributing
