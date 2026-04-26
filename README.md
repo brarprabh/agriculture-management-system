@@ -1,5 +1,7 @@
 # 🌾 Agriculture Management System
 
+![Project Dashboard Preview](frontend/src/assets/preview.png)
+
 A premium, full-stack web application designed to help agronomists and farmers manage fields, monitor soil health, track fertilizer usage, and automate disease alerts. Built with a modern React frontend and a powerful Node.js/MySQL backend featuring advanced, production-ready PL/SQL database automation.
 
 ## ✨ Key Features
