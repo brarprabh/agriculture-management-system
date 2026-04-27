@@ -12,6 +12,12 @@ A premium, full-stack web application designed to help agronomists and farmers m
 * **Live System Alerts Panel:** Real-time notifications for critical crop diseases fetched directly from database triggers.
 * **Activity Logs Viewer:** A dedicated UI to monitor automated background database events and user inputs.
 
+### 🔐 Authentication & Role-Based Access Control (RBAC)
+* **Secure Login System:** Users must authenticate with their registered credentials to access the system.
+* **Admin Dashboard:** Full system access for agronomists to manage users, fields, soil tests, and system-wide analytics.
+* **Restricted Farmer Portal:** A locked-down, personalized dashboard specifically for farmers. The frontend completely hides administrative routes, and backend APIs strictly enforce `WHERE user_id = ?` clauses to guarantee data isolation.
+* **Farmer Field Details:** Farmers can click into their individual fields to view an aggregated history of their specific fertilizer usage, soil reports, and targeted disease alerts.
+
 ### ⚙️ Advanced Database Architecture & Automation (MySQL 8.0+)
 This project showcases deep database engineering, pushing business logic directly into the data layer:
 * **3NF Normalization:** Fully normalized relational structure separating `Farmers`, `Crops`, `Fields`, `SoilHealth`, and `CropDiseases` to prevent data anomalies.

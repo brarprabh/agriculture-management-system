@@ -9,10 +9,36 @@ import FertilizerForm from './components/FertilizerForm';
 import DiseaseForm from './components/DiseaseForm';
 import DiseaseList from './components/DiseaseList';
 import ActivityLogs from './components/ActivityLogs';
-import { Activity } from 'lucide-react';
+import Login from './components/Login';
+import FarmerDashboard from './components/FarmerDashboard';
+import FarmerFieldDetails from './components/FarmerFieldDetails';
+import { Activity, LogOut } from 'lucide-react';
 
 function App() {
-  const navItems = [
+  const [user, setUser] = React.useState(null);
+
+  // Check local storage on load
+  React.useEffect(() => {
+    const storedUser = localStorage.getItem('agri_user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+    localStorage.setItem('agri_user', JSON.stringify(userData));
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('agri_user');
+  };
+
+  if (!user) {
+    return <Login onLogin={handleLogin} />;
+  }
+  const adminNavItems = [
     { path: "/", name: "Dashboard", icon: Home },
     { path: "/users", name: "Users", icon: Users },
     { path: "/fields", name: "Fields", icon: Map },
@@ -21,6 +47,12 @@ function App() {
     { path: "/diseases", name: "Crop Diseases", icon: Bug },
     { path: "/logs", name: "Activity Logs", icon: Activity },
   ];
+
+  const farmerNavItems = [
+    { path: "/farmer-dashboard", name: "My Portal", icon: Home },
+  ];
+
+  const navItems = user.role === 'Admin' ? adminNavItems : farmerNavItems;
 
   return (
     <Router>
@@ -64,14 +96,19 @@ function App() {
           </nav>
 
           <div className="p-6 relative z-10 border-t border-white/10">
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-black/20 backdrop-blur-sm border border-white/5">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-agrigreen-500 to-emerald-400 flex items-center justify-center text-sm font-bold shadow-inner">
-                A
+            <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-black/20 backdrop-blur-sm border border-white/5">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-agrigreen-500 to-emerald-400 flex items-center justify-center text-sm font-bold shadow-inner uppercase">
+                  {user.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold capitalize">{user.name}</p>
+                  <p className="text-xs text-agrigreen-100/60">{user.role}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-semibold">Admin User</p>
-                <p className="text-xs text-agrigreen-100/60">System Manager</p>
-              </div>
+              <button onClick={handleLogout} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors" title="Logout">
+                <LogOut className="w-4 h-4 text-agrigreen-100/80 hover:text-white" />
+              </button>
             </div>
           </div>
         </aside>
@@ -80,14 +117,32 @@ function App() {
         <main className="flex-1 overflow-y-auto bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9InJnYmEoMCwwLDAsMC4wMykiLz48L3N2Zz4=')]">
           <div className="p-10 max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
             <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/users" element={<UserForm />} />
-              <Route path="/fields" element={<FieldForm />} />
-              <Route path="/soil" element={<SoilForm />} />
-              <Route path="/fertilizer" element={<FertilizerForm />} />
-              <Route path="/diseases" element={<DiseaseList />} />
-              <Route path="/disease/new" element={<DiseaseForm />} />
-              <Route path="/logs" element={<ActivityLogs />} />
+              {/* Admin Routes */}
+              {user.role === 'Admin' && (
+                <>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/users" element={<UserForm />} />
+                  <Route path="/fields" element={<FieldForm />} />
+                  <Route path="/soil" element={<SoilForm />} />
+                  <Route path="/fertilizer" element={<FertilizerForm />} />
+                  <Route path="/diseases" element={<DiseaseList />} />
+                  <Route path="/disease/new" element={<DiseaseForm />} />
+                  <Route path="/logs" element={<ActivityLogs />} />
+                </>
+              )}
+
+              {/* Farmer Routes */}
+              {user.role === 'Farmer' && (
+                <>
+                  <Route path="/farmer-dashboard" element={<FarmerDashboard user={user} />} />
+                  <Route path="/farmer/field/:field_id" element={<FarmerFieldDetails />} />
+                  {/* Default redirect for farmers */}
+                  <Route path="*" element={<FarmerDashboard user={user} />} />
+                </>
+              )}
+
+              {/* Default redirect for admin */}
+              {user.role === 'Admin' && <Route path="*" element={<Dashboard />} />}
             </Routes>
           </div>
         </main>

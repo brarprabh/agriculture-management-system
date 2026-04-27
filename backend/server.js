@@ -41,6 +41,19 @@ app.get('/api/users', async (req, res) => {
     }
 });
 
+app.post('/api/login', async (req, res) => {
+    try {
+        const { name } = req.body;
+        const [users] = await pool.query('SELECT * FROM Users WHERE name = ?', [name]);
+        if (users.length === 0) {
+            return res.status(401).json({ error: 'User not found' });
+        }
+        res.json(users[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // --- Field Management ---
 app.post('/api/fields', async (req, res) => {
     try {
@@ -254,6 +267,70 @@ app.get('/api/logs', async (req, res) => {
     try {
         const [rows] = await pool.query('SELECT * FROM AuditLog ORDER BY action_date DESC LIMIT 50');
         res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- Farmer Portal ---
+app.get('/api/farmer/dashboard/:user_id', async (req, res) => {
+    try {
+        const { user_id } = req.params;
+        const [fieldsResult] = await pool.query('SELECT COUNT(*) as field_count FROM Fields WHERE user_id = ?', [user_id]);
+        const [fertResult] = await pool.query('SELECT COALESCE(SUM(quantity), 0) as total_fertilizer FROM FertilizerUsage fu JOIN Fields f ON fu.field_id = f.field_id WHERE f.user_id = ?', [user_id]);
+        const [diseaseResult] = await pool.query("SELECT COUNT(*) as disease_count FROM CropDiseases cd JOIN Fields f ON cd.field_id = f.field_id WHERE f.user_id = ? AND cd.severity IN ('High', 'Critical')", [user_id]);
+        const [soilResult] = await pool.query('SELECT COUNT(*) as soil_count FROM SoilProperties sp JOIN Fields f ON sp.field_id = f.field_id WHERE f.user_id = ?', [user_id]);
+
+        res.json({
+            field_count: fieldsResult[0].field_count,
+            total_fertilizer: fertResult[0].total_fertilizer,
+            disease_count: diseaseResult[0].disease_count,
+            soil_count: soilResult[0].soil_count
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/farmer/fields/:user_id', async (req, res) => {
+    try {
+        const { user_id } = req.params;
+        const query = `
+            SELECT 
+                f.field_id,
+                f.location,
+                f.area_size,
+                COALESCE(SUM(fu.quantity), 0) AS total_fertilizer,
+                (SELECT COUNT(*) FROM CropDiseases cd WHERE cd.field_id = f.field_id) AS disease_count,
+                (SELECT pH FROM SoilProperties sp WHERE sp.field_id = f.field_id ORDER BY test_date DESC LIMIT 1) AS latest_ph
+            FROM Fields f
+            LEFT JOIN FertilizerUsage fu ON f.field_id = fu.field_id
+            WHERE f.user_id = ?
+            GROUP BY f.field_id, f.location, f.area_size
+        `;
+        const [rows] = await pool.query(query, [user_id]);
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/farmer/field/:field_id', async (req, res) => {
+    try {
+        const { field_id } = req.params;
+        const [field] = await pool.query('SELECT * FROM Fields WHERE field_id = ?', [field_id]);
+        const [fertilizers] = await pool.query('SELECT * FROM FertilizerUsage WHERE field_id = ? ORDER BY applied_date DESC', [field_id]);
+        const [soil] = await pool.query('SELECT * FROM SoilProperties WHERE field_id = ? ORDER BY test_date DESC', [field_id]);
+        const [diseases] = await pool.query('SELECT * FROM CropDiseases WHERE field_id = ? ORDER BY detection_date DESC', [field_id]);
+        const [alerts] = await pool.query("SELECT * FROM Alerts WHERE message LIKE CONCAT('%field ', ?, '%') OR message LIKE CONCAT('%field ID ', ?, '.%') ORDER BY created_at DESC", [field_id, field_id]);
+
+        res.json({
+            field: field[0],
+            fertilizers,
+            soil,
+            diseases,
+            alerts
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
