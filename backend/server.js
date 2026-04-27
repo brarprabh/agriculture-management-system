@@ -172,14 +172,15 @@ app.get('/api/reports/field-summary', async (req, res) => {
         const query = `
             SELECT 
                 u.name AS farmer_name, 
-                f.location AS field_location, 
+                COUNT(DISTINCT f.field_id) AS total_fields, 
                 COALESCE(SUM(fu.quantity), 0) AS total_fertilizer, 
                 COUNT(cd.disease_id) AS disease_count
-            FROM Fields f
-            JOIN Users u ON f.user_id = u.user_id
+            FROM Users u
+            LEFT JOIN Fields f ON u.user_id = f.user_id
             LEFT JOIN FertilizerUsage fu ON f.field_id = fu.field_id
             LEFT JOIN CropDiseases cd ON f.field_id = cd.field_id
-            GROUP BY f.field_id, u.name, f.location
+            WHERE u.role = 'Farmer' OR u.role IS NULL
+            GROUP BY u.user_id, u.name
         `;
         const [rows] = await pool.query(query);
         res.json(rows);
@@ -232,15 +233,20 @@ app.get('/api/dashboard', async (req, res) => {
         // Fetch latest alerts
         const [alerts] = await pool.query('SELECT * FROM Alerts ORDER BY created_at DESC LIMIT 5');
         
-        // Fetch latest soil properties per field with farmer name
+        // Fetch average latest soil properties per farmer
         const [soilData] = await pool.query(`
-            SELECT CONCAT(u.name, ' (', f.location, ')') AS farmer_field, s.nitrogen, s.phosphorus, s.potassium, s.pH
-            FROM SoilProperties s
-            JOIN Fields f ON s.field_id = f.field_id
-            JOIN Users u ON f.user_id = u.user_id
+            SELECT 
+                u.name AS farmer_name, 
+                ROUND(AVG(s.nitrogen), 2) AS nitrogen, 
+                ROUND(AVG(s.phosphorus), 2) AS phosphorus, 
+                ROUND(AVG(s.potassium), 2) AS potassium
+            FROM Users u
+            JOIN Fields f ON u.user_id = f.user_id
+            JOIN SoilProperties s ON f.field_id = s.field_id
             WHERE s.test_date = (
-                SELECT MAX(test_date) FROM SoilProperties WHERE field_id = s.field_id
+                SELECT MAX(test_date) FROM SoilProperties WHERE field_id = f.field_id
             )
+            GROUP BY u.user_id, u.name
         `);
         
         res.json({

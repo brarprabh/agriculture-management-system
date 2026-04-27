@@ -207,12 +207,12 @@ const Dashboard = () => {
               <BarChart data={data.soil_health} margin={{ top: 20, right: 30, left: 15, bottom: 40 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis 
-                  dataKey="farmer_field" 
+                  dataKey="farmer_name" 
                   axisLine={false} 
                   tickLine={false} 
                   tick={{ fill: '#64748b', fontSize: 13, fontWeight: 500 }}
                   dy={10}
-                  label={{ value: 'Farmer & Field Location', position: 'insideBottom', offset: -25, fill: '#475569', fontWeight: 600, fontSize: 14 }}
+                  label={{ value: 'Farmer', position: 'insideBottom', offset: -25, fill: '#475569', fontWeight: 600, fontSize: 14 }}
                 />
                 <YAxis 
                   axisLine={false} 
@@ -271,9 +271,9 @@ const Dashboard = () => {
               <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
                 <FileText className="w-5 h-5" />
               </div>
-              Field Summary Report
+              Farmer Summary Report
             </h3>
-            <p className="text-sm text-slate-500 mt-1">Comprehensive breakdown of field resources and incidents.</p>
+            <p className="text-sm text-slate-500 mt-1">Comprehensive breakdown of resources and incidents across all fields per farmer.</p>
           </div>
         </div>
 
@@ -283,7 +283,7 @@ const Dashboard = () => {
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-sm font-semibold tracking-wide">
                   <th className="p-4 pl-6">Farmer Name</th>
-                  <th className="p-4">Field Location</th>
+                  <th className="p-4">Total Fields</th>
                   <th className="p-4">Total Fertilizer Used</th>
                   <th className="p-4 pr-6">Disease Count</th>
                 </tr>
@@ -294,8 +294,8 @@ const Dashboard = () => {
                     <td className="p-4 pl-6 font-medium text-slate-800">
                       {row.farmer_name}
                     </td>
-                    <td className="p-4 text-slate-600">
-                      {row.field_location}
+                    <td className="p-4 text-slate-600 font-bold">
+                      {row.total_fields || 0}
                     </td>
                     <td className="p-4 font-medium">
                       <span className={`px-3 py-1 rounded-full text-sm ${row.total_fertilizer > 100 ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-700'}`}>
